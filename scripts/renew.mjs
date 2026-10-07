@@ -64,13 +64,14 @@ function fmtDate(expiry) {
 }
 
 /** 封装 DigitalPlat API 调用,返回解析后的 JSON;失败抛错(带状态和响应摘要) */
-async function api(path, { method = 'GET', body } = {}) {
+async function api(path, { method = 'GET', body, headers = {} } = {}) {
   const res = await fetch(BASE_URL + path, {
     method,
     headers: {
       Authorization: `Bearer ${API_KEY}`,
       Accept: 'application/json',
       ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(30_000),
@@ -125,7 +126,9 @@ function autoDot(v) {
 
 /** 续期一个域名;free 域名在支付方式被拒时回退为不带支付方式重试一次 */
 async function renewDomain(name, isFree) {
-  const attempt = async (body) => api(`/domains/${encodeURIComponent(name)}/renew`, { method: 'POST', body });
+  const attempt = async (body) => api(`/domains/${encodeURIComponent(name)}/renew`, { method: 'POST', body, headers: {
+        'Idempotency-Key': idempotencyKey,
+      }, });
   const payment = PAYMENT_METHOD || (isFree ? PAYMENT_FREE : PAYMENT_PAID);
   try {
     const r = await attempt({ years: YEARS, payment_method: payment });
