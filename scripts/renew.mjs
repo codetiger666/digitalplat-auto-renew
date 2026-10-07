@@ -23,6 +23,7 @@
 //   RENEW_PAYMENT_PAID      其他域名支付方式,默认 credits
 //   RENEW_DELAY_MS          每个请求间隔毫秒,默认 300
 //   DRY_RUN                 true/false 是否只预览
+import crypto from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { appendFileSync } from 'node:fs';
 
@@ -126,6 +127,7 @@ function autoDot(v) {
 
 /** 续期一个域名;free 域名在支付方式被拒时回退为不带支付方式重试一次 */
 async function renewDomain(name, isFree) {
+  const idempotencyKey = crypto.randomUUID();
   const attempt = async (body) => api(`/domains/${encodeURIComponent(name)}/renew`, { method: 'POST', body, headers: {
         'Idempotency-Key': idempotencyKey,
       }, });
